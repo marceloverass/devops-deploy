@@ -19,7 +19,7 @@ app.get('/status', (req, res) => {
   
   res.json({
     status: 'online',
-    message: 'Lacrei Saúde API - Ambiente de PRODUÇÃO',
+    message: 'Lacrei Saúde API - Ambiente de STAGING',
     timestamp: new Date().toISOString()
   });
 });
