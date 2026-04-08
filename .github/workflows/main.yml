@@ -24,12 +24,15 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/lacrei-api:${{ github.sha }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/lacrei-api:latest,${{ secrets.DOCKER_USERNAME }}/lacrei-api:${{ github.sha }}
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout do código (para pegar o docker-compose e nginx.conf)
+        uses: actions/checkout@v4
+
       - name: Definir IP do Ambiente
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
@@ -38,6 +41,15 @@ jobs:
             echo "TARGET_IP=${{ secrets.STAGING_IP }}" >> $GITHUB_ENV
           fi
 
+      - name: Copiar arquivos de config para a AWS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.TARGET_IP }}
+          username: ec2-user
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml,nginx/default.conf"
+          target: "~/app"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -45,8 +57,12 @@ jobs:
           username: ec2-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-
+            cd ~/app
+            # Exporta a tag do commit para o docker-compose usar a imagem exata
+            export IMAGE_TAG=${{ github.sha }}
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            
             docker pull ${{ secrets.DOCKER_USERNAME }}/lacrei-api:${{ github.sha }}
-            docker stop lacrei-app || true
-            docker rm lacrei-app || true
-            docker run -d --name lacrei-app -p 80:3000 ${{ secrets.DOCKER_USERNAME }}/lacrei-api:${{ github.sha }}
+            
+            docker-compose down
+            docker-compose up -d
