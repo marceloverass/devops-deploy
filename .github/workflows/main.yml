@@ -1,8 +1,10 @@
-name: CI/CD Lacrei Saude
+name: CI-CD Lacrei Saude
 
 on:
   push:
-    [cite_start]branches: [ "main", "develop" ]
+    branches:
+      - main
+      - develop
 
 jobs:
   build-and-push:
@@ -43,6 +45,7 @@ jobs:
           username: ec2-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+
             docker pull ${{ secrets.DOCKER_USERNAME }}/lacrei-api:${{ github.sha }}
             docker stop lacrei-app || true
             docker rm lacrei-app || true
