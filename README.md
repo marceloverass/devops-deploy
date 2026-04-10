@@ -70,9 +70,11 @@ Menor Privilégio: Security Groups da AWS configurados para permitir apenas o tr
 ## 📊 Observabilidade e Monitoramento
 Logs em Tempo Real: Logs estruturados acessíveis via Docker. Para monitorar:
 
-Bash
+```
 docker logs -f app-nginx-1
-AWS CloudWatch: Acompanhamento de métricas de hardware (CPU, Network e Disk I/O).
+```
+
+AWS CloudWatch: Acompanhamento de métricas de hardware (CPU, Network e Disk I/O).}
 
 Proposta de Alertas: Configuração de alarmes via AWS SNS para notificar via e-mail caso a utilização de CPU ultrapasse 80%.
 
