@@ -7,9 +7,7 @@ Ambiente de Produção: https://18.222.147.126/status
 
 Ambiente de Staging: https://18.118.159.92/status
 
-```
 ⚠️ Nota de Segurança: Devido ao uso de certificados auto-assinados (Self-signed SSL), o navegador exibirá um alerta de segurança. Para acessar, clique em Avançado e Prosseguir. Em produção real, seriam utilizados certificados validados por uma CA (ex: Let's Encrypt).
-```
 
 ## 🛠 Arquitetura de Infraestrutura
 A solução utiliza uma arquitetura de Proxy Reverso para garantir que a aplicação Node.js nunca seja exposta diretamente à internet, garantindo uma camada extra de segurança e controle de tráfego.
@@ -89,7 +87,7 @@ Clique em Re-run all jobs.
 
 O sistema fará o rollback para a imagem estável anterior em menos de 1 minuto.
 
-## 🟨 Bônus: Visão de Integração (Asaas)
+## 🟨 Visão de Integração (Asaas)
 A arquitetura foi pensada para facilitar a integração com o ecossistema de pagamentos da Asaas:
 
 Webhooks: O Nginx está preparado para receber notificações de pagamento da Asaas e encaminhar para a API tratar a confirmação de consultas.
