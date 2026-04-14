@@ -8,6 +8,8 @@ RUN npm install
 FROM node:18-alpine
 WORKDIR /app
 
+RUN apk add --no-cache curl
+
 RUN addgroup -S nodegroup && adduser -S nodeuser -G nodegroup
 USER nodeuser
 
