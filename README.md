@@ -12,6 +12,13 @@ Ambiente de Staging: https://18.118.159.92/status
 ## 🛠 Arquitetura de Infraestrutura
 A solução utiliza uma arquitetura de Proxy Reverso para garantir que a aplicação Node.js nunca seja exposta diretamente à internet, garantindo uma camada extra de segurança e controle de tráfego.
 
+Principais Componentes:
+- Instância EC2: Servidor T3.micro hospedando toda a stack.
+
+- Nginx Container: Atua como Proxy Reverso, gerenciando certificados SSL e tráfego HTTPS (porta 443).
+
+- Node.js API: Container isolado na porta interna 3000, acessível apenas pelo Nginx.
+
 ```mermaid
 graph TD
     User[🌍 Usuário] -->|HTTPS 443| AWS_SG
@@ -37,9 +44,16 @@ graph TD
     style API fill:#339933,stroke:#fff,color:#fff
 ```
 
-## 🏗 Pipeline CI/CD
+## 🏗 Pipeline de CI/CD Modularizado
+
 O fluxo de automação foi desenhado para garantir deploys seguros, replicáveis e automáticos a cada alteração no código.
 
+Paridade de Ambientes: Diferente de pipelines lineares simples, esta solução utiliza Workflows Independentes para Staging e Produção, como demonstrado na organização dos arquivos abaixo:
+
+Fluxo Detalhado:
+1. Validação Automática (CI): Todo push dispara a execução de Linting (ESLint) e Testes Unitários (Jest). O deploy é bloqueado se houver falha.
+
+2. SSH Deploy (CD): O pipeline se conecta com segurança ao servidor AWS, garantindo que o deploy seja concluído com sucesso.
 
 ```mermaid
 graph LR
@@ -59,13 +73,13 @@ graph LR
 ```
 
 ## 🔐 Segurança e Boas Práticas
-Criptografia em Trânsito: Implementação de HTTPS via Nginx com SSL/TLS (OpenSSL).
+- Proxy Reverso (Nginx): A aplicação Node.js está isolada na porta 3000, acessível apenas internamente pelo Nginx via TLS/SSL.
 
-Proxy Reverso: Isolamento da porta 3000; a API só aceita conexões vindas do container Nginx.
+- Hardening de Imagem: Uso de imagens Alpine (Node-Alpine), reduzindo a superfície de ataque e otimizando o tempo de build/transferência.
 
-Gestão de Segredos: Todas as chaves SSH, IPs e credenciais do Docker Hub estão protegidas via GitHub Secrets.
+- Segredos: Gestão rigorosa de credenciais via GitHub Secrets.
 
-Menor Privilégio: Security Groups da AWS configurados para permitir apenas o tráfego estritamente necessário (22, 80, 443).
+- Least Privilege: Security Groups da AWS configurados para tráfego mínimo necessário.
 
 ## 📊 Observabilidade e Monitoramento
 Logs em Tempo Real: Logs estruturados acessíveis via Docker. Para monitorar:
@@ -74,24 +88,33 @@ Logs em Tempo Real: Logs estruturados acessíveis via Docker. Para monitorar:
 docker logs -f app-nginx-1
 ```
 
-AWS CloudWatch: Acompanhamento de métricas de hardware (CPU, Network e Disk I/O).}
+- AWS CloudWatch: Acompanhamento de métricas de hardware (CPU, Network e Disk I/O).
 
-Proposta de Alertas: Configuração de alarmes via AWS SNS para notificar via e-mail caso a utilização de CPU ultrapasse 80%.
+- Proposta de Alertas: Configuração de alarmes via AWS SNS para notificar via e-mail caso a utilização de CPU ultrapasse 80%.
 
 ## 🔄 Estratégia de Rollback
-O projeto utiliza Image Tagging baseada no SHA do commit. Em caso de falha:
+O processo de recuperação de desastres foi fortalecido através de Imutabilidade de Imagens:
 
-Acesse a aba Actions no GitHub.
+- Cada deploy gera uma tag única baseada no Commit SHA (lacrei-api:${{ github.sha }}).
 
-Selecione o último workflow funcional.
-
-Clique em Re-run all jobs.
-
-O sistema fará o rollback para a imagem estável anterior em menos de 1 minuto.
+- Rollback Rápido: Diferente de depender apenas da tag latest, agora pode-se reverter para qualquer versão anterior estável em segundos, garantindo um processo claro, seguro e reproduzível.
 
 ## 🟨 Visão de Integração (Asaas)
-A arquitetura foi pensada para facilitar a integração com o ecossistema de pagamentos da Asaas:
+- A arquitetura foi pensada para facilitar a integração com o ecossistema de pagamentos da Asaas:
 
-Webhooks: O Nginx está preparado para receber notificações de pagamento da Asaas e encaminhar para a API tratar a confirmação de consultas.
+- Webhooks: O Nginx está preparado para receber notificações de pagamento da Asaas e encaminhar para a API tratar a confirmação de consultas.
 
-Escalabilidade: O uso de Docker Compose permite que a integração seja testada em Staging de forma idêntica à Produção antes do lançamento.
+- Escalabilidade: O uso de Docker Compose permite que a integração seja testada em Staging de forma idêntica à Produção antes do lançamento.
+
+## 🛠️ Comandos Úteis
+Verificar logs em tempo real:
+
+```
+docker logs -f devops-deploy-app-1
+```
+Verificar status de saúde do container:
+
+
+```
+docker inspect --format='{{json .State.Health.Status}}' devops-deploy-app-1
+```
