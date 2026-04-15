@@ -1,11 +1,18 @@
 services:
   app:
+    build: .
     image: ${DOCKER_USERNAME}/lacrei-api:${IMAGE_TAG:-latest}
     restart: always
     expose:
       - "3000"
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   nginx:
     image: nginx:latest
@@ -18,4 +25,5 @@ services:
       - /home/ec2-user/certs/nginx-selfsigned.crt:/etc/nginx/certs/nginx-selfsigned.crt:ro
       - /home/ec2-user/certs/nginx-selfsigned.key:/etc/nginx/certs/nginx-selfsigned.key:ro
     depends_on:
-      - app
+      app:
+        condition: service_healthy

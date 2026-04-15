@@ -15,7 +15,7 @@ app.use((req, res, next) => {
 });
 
 app.get('/status', (req, res) => {
-  console.log(`[LOG] Rota /status acessada com sucesso.`);
+  console.log('[LOG] Rota /status acessada com sucesso.');
   
   res.json({
     status: 'online',
@@ -26,5 +26,5 @@ app.get('/status', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`[SISTEMA] Servidor iniciado com sucesso na porta ${PORT}`);
-  console.log(`[SISTEMA] Logs de observabilidade ativos.`);
+  console.log('[SISTEMA] Logs de observabilidade ativos.');
 });
