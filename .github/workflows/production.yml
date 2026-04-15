@@ -1,0 +1,64 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  ci-validation:
+    name: "Validar Código"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm install
+      - run: npm run lint
+      - run: npm test
+
+  deploy-production:
+    name: "Deploy para Produção (AWS)"
+    needs: ci-validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Production
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/lacrei-api:latest
+            ${{ secrets.DOCKER_USERNAME }}/lacrei-api:${{ github.sha }}
+
+      - name: Copiar arquivos para Produção
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.PRODUCTION_IP }}
+          username: ec2-user
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml,nginx/default.conf"
+          target: "~/app-production"
+
+      - name: SSH Deploy Production
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PRODUCTION_IP }}
+          username: ec2-user
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/app
+            export IMAGE_TAG=${{ github.sha }}
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            docker pull $DOCKER_USERNAME/lacrei-api:$IMAGE_TAG
+            docker-compose up -d --force-recreate
+            docker image prune -f
