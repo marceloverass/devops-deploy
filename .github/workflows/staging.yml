@@ -6,6 +6,7 @@ on:
 
 jobs:
   ci-validation:
+    name: "Validar Código"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,10 +15,11 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm install
-      - run: npm run lint 
+      - run: npm run lint
       - run: npm test
 
   deploy-staging:
+    name: "Deploy para Staging (AWS)"
     needs: ci-validation
     runs-on: ubuntu-latest
     steps:
@@ -36,6 +38,16 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/lacrei-api:staging-${{ github.sha }}
 
+      - name: Copiar arquivos de configuração para Staging
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.STAGING_IP }}
+          username: ec2-user
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml,nginx/default.conf"
+          target: "~/app-staging"
+          strip_components: 0
+
       - name: SSH Deploy Staging
         uses: appleboy/ssh-action@master
         with:
@@ -43,8 +55,9 @@ jobs:
           username: ec2-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ~/app-staging 
+            cd ~/app-staging
             export IMAGE_TAG=staging-${{ github.sha }}
             export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             docker pull $DOCKER_USERNAME/lacrei-api:$IMAGE_TAG
             docker-compose up -d --force-recreate
+            docker image prune -f
